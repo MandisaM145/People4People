@@ -1,0 +1,31 @@
+people-for-people/
+├── docker-compose.yml
+├── .env
+├── backend/
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── src/
+│       ├── main.ts
+│       ├── app.module.ts
+│       ├── reports/
+│       │   ├── reports.controller.ts
+│       │   ├── reports.service.ts
+│       │   └── reports.entity.ts
+│       ├── job-cards/
+│       │   ├── job-cards.controller.ts
+│       │   ├── job-cards.service.ts
+│       │   └── job-cards.entity.ts
+│       └── routing/
+│           └── osrm.service.ts
+└── frontend/
+    ├── package.json
+    ├── vite.config.ts
+    ├── index.html
+    └── src/
+        ├── main.tsx
+        ├── App.tsx
+        ├── components/
+        │   ├── LeafletMap.tsx
+        │   └── AdminDashboard.tsx
+        └── services/
+            └── api.ts

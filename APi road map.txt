@@ -1,0 +1,236 @@
+APi road map
+
+                    PEOPLE FOR PEOPLE
+                           │
+             ┌─────────────┴─────────────┐
+             │                           │
+       Community App              Admin/Staff Apps
+       Web / Mobile                Web / Desktop
+             │                           │
+             └─────────────┬─────────────┘
+                           │
+                     REST API
+                           │
+                 ┌─────────┴─────────┐
+                 │                   │
+           Authentication       Core Services
+           + Roles               + Reports
+                                + Job Cards
+                                + Routing
+                                + Crews
+                                + Messaging
+                                + Notifications
+                                + Analytics
+                 │                   │
+                 └─────────┬─────────┘
+                           │
+                    PostgreSQL
+                       + PostGIS
+                           │
+              ┌────────────┼────────────┐
+              │            │            │
+           MinIO         Redis       OSRM
+        Media Storage    Queues      Routing
+
+
+
+example for RESt API
+
+POST   /api/v1/auth/login
+POST   /api/v1/reports
+GET    /api/v1/reports
+GET    /api/v1/reports/{id}
+PATCH  /api/v1/reports/{id}
+
+GET    /api/v1/job-cards
+POST   /api/v1/job-cards
+PATCH  /api/v1/job-cards/{id}/status
+
+GET    /api/v1/crews
+POST   /api/v1/job-cards/{id}/assign
+
+GET    /api/v1/offices
+GET    /api/v1/provinces
+GET    /api/v1/wards
+
+GET    /api/v1/dashboard/statistics
+GET    /api/v1/dashboard/map
+
+DB API
+
+PostgreSQL + PostGIS 
+should have,
+
+Province: KwaZulu-Natal
+Municipality: eThekwini
+Ward: 32
+
+Latitude: -29.xxxxx
+Longitude: 31.xxxxx
+
+Issue:
+Damaged road
+
+Nearest office:
+Durban North Office
+
+Distance:
+4.7 km
+
+open street map API
+
+              MAP
+ ┌──────────────────────────┐
+ │                          │
+ │        📍 ISSUE          │
+ │                          │
+ │    ───── Road ─────      │
+ │                          │
+ │              🏢 Office   │
+ │                          │
+ └──────────────────────────┘
+
+[Use My Location]
+
+Province: KwaZulu-Natal
+Ward: 32
+Office: Durban Office
+
+admin console
+                 NATIONAL MAP
+
+       🔴 23 unresolved
+       🟡 41 in progress
+       🟢 87 completed
+
+  KZN          Gauteng        Limpopo
+   ●●●            ●●●           ●●
+    ●              ●             ●
+
+
+routing api
+
+OSRM (Open Source Routing Machine) can run locally
+
+Incident
+   ↓
+GPS coordinates
+   ↓
+PostGIS
+   ↓
+Find responsible offices
+   ↓
+OSRM
+   ↓
+Calculate road distance/time
+   ↓
+Select appropriate office/crew
+
+auth API: 
+Authentication: Keycloak
+
+Login
+Password management
+Roles
+Groups
+Sessions
+MFA capability
+Access tokens
+Administrative users
+
+storage, 
+
+Photos, videos and documents: MinIO
+
+Community Member
+       │
+       │ uploads photo
+       ↓
+People for People API
+       │
+       ↓
+    MinIO
+       │
+       └── report/2026/000123/photo.jpg
+
+PostgreSQL stores the metadata and reference.
+
+
+build tree
+
+Frontend
+React + TypeScript
+        │
+        ↓
+Backend
+NestJS + TypeScript
+        │
+        ├── REST API
+        │
+        ├── Keycloak
+        │
+        ├── Redis
+        │
+        └── PostgreSQL + PostGIS
+                    │
+                    ├── People
+                    ├── Reports
+                    ├── Job Cards
+                    ├── Offices
+                    ├── Crews
+                    ├── Wards
+                    └── GPS data
+
+Media
+MinIO
+
+Maps
+Leaflet + OpenStreetMap
+
+Routing
+OSRM
+
+Documentation
+Swagger/OpenAPI
+
+Monitoring
+Prometheus + Grafana
+
+Development
+Docker
+Git
+VS Code
+
+
+
+Then when we go LIVE
+
+This is where we start replacing some local components with managed services only where it makes sense.
+
+For example:
+
+LOCAL DEVELOPMENT
+
+Your PC
+   │
+   ├── PostgreSQL
+   ├── Redis
+   ├── MinIO
+   ├── Keycloak
+   ├── OSRM
+   └── People for People API
+
+Then:
+
+PRODUCTION
+
+Cloud Server(s)
+      │
+      ├── People for People API
+      ├── PostgreSQL/PostGIS
+      ├── Redis
+      ├── Object Storage
+      ├── Authentication
+      ├── Routing
+      ├── Monitoring
+      └── Backup

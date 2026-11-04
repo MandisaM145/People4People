@@ -11,9 +11,23 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // CORS middleware
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  // 1. Get the domain making the request
+  const origin = req.headers.origin;
+  
+  // 2. Define which domains are allowed to talk to your API
+  const allowedOrigins = [
+    'http://localhost:5173',                      // Your local Vite frontend
+    'https://onrender.com'          // Replace with your actual live Render frontend URL
+  ];
+
+  // 3. If the request is from an allowed domain, set the header dynamically
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }

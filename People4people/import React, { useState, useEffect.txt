@@ -1,0 +1,375 @@
+import React, { useState, useEffect } from 'react';
+import { LeafletMap } from './components/LeafletMap';
+
+type Tab = 'REPORT' | 'TRACK' | 'ADMIN';
+type Status = 'Pending' | 'In Progress' | 'Resolved';
+
+interface Report {
+  id: string;
+  reportNumber: string;
+  category: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  status: Status;
+  assignedCrew?: string;
+  photoBase64?: string;
+  createdAt: string;
+}
+
+export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<Tab>('REPORT');
+
+  // Location State
+  const [lat, setLat] = useState<number>(-29.8587);
+  const [lon, setLon] = useState<number>(31.0218);
+
+  // Submit Form State
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('Damaged Road / Pothole');
+  const [photoBase64, setPhotoBase64] = useState<string>('');
+  const [statusMsg, setStatusMsg] = useState('');
+
+  // Lookup State
+  const [searchTicketNum, setSearchTicketNum] = useState('');
+  const [trackedReport, setTrackedReport] = useState<Report | null>(null);
+  const [trackError, setTrackError] = useState('');
+
+  // Admin Dashboard State
+  const [reports, setReports] = useState<Report[]>([]);
+  const [filterCategory, setFilterCategory] = useState('ALL');
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [newCrew, setNewCrew] = useState('');
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setLat(pos.coords.latitude);
+        setLon(pos.coords.longitude);
+      });
+    }
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    try {
+      const query = new URLSearchParams({
+        category: filterCategory,
+        status: filterStatus,
+      }).toString();
+      const res = await fetch(`/api/v1/reports?${query}`);
+      const data = await res.json();
+      setReports(data);
+    } catch (err) {
+      console.error('Failed to load reports:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'ADMIN') {
+      fetchReports();
+    }
+  }, [filterCategory, filterStatus, activeTab]);
+
+  // Handle Photo File Upload to Base64
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Submit Report
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatusMsg('Submitting report...');
+
+    try {
+      const response = await fetch('/api/v1/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description,
+          category,
+          latitude: lat,
+          longitude: lon,
+          photoBase64,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setStatusMsg(`Report logged successfully! Ticket Number: ${data.reportNumber}`);
+        setDescription('');
+        setPhotoBase64('');
+      } else {
+        setStatusMsg('Error submitting report.');
+      }
+    } catch (err) {
+      setStatusMsg('Network connection error.');
+    }
+  };
+
+  // Track Ticket
+  const handleTrackTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTrackError('');
+    setTrackedReport(null);
+
+    try {
+      const res = await fetch(`/api/v1/reports/track/${searchTicketNum}`);
+      const data = await res.json();
+      if (data.found) {
+        setTrackedReport(data.report);
+      } else {
+        setTrackError(data.message || 'Ticket not found.');
+      }
+    } catch (err) {
+      setTrackError('Could not reach server.');
+    }
+  };
+
+  // Admin: Update Status and Crew
+  const handleUpdateStatus = async (id: string, newStatus: Status) => {
+    try {
+      const res = await fetch(`/api/v1/reports/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, assignedCrew: newCrew || undefined }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSelectedReport(data.report);
+        fetchReports();
+      }
+    } catch (err) {
+      console.error('Update failed:', err);
+    }
+  };
+
+  const getStatusBadgeStyle = (status: Status) => {
+    switch (status) {
+      case 'Pending':
+        return { background: '#FFF3CD', color: '#856404' };
+      case 'In Progress':
+        return { background: '#CCE5FF', color: '#004085' };
+      case 'Resolved':
+        return { background: '#D4EDDA', color: '#155724' };
+    }
+  };
+
+  return (
+    <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '900px', margin: '0 auto', padding: '16px' }}>
+      <header style={{ backgroundColor: '#005A36', color: '#FFF', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
+        <h1 style={{ margin: 0 }}>PEOPLE FOR PEOPLE</h1>
+        <p style={{ margin: '4px 0 0 0' }}>Community Service Delivery Platform</p>
+      </header>
+
+      {/* Navigation Bar */}
+      <nav style={{ display: 'flex', gap: '8px', margin: '16px 0' }}>
+        <button
+          onClick={() => setActiveTab('REPORT')}
+          style={{ flex: 1, padding: '12px', background: activeTab === 'REPORT' ? '#005A36' : '#EEE', color: activeTab === 'REPORT' ? '#FFF' : '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+        >
+          Submit Issue
+        </button>
+        <button
+          onClick={() => setActiveTab('TRACK')}
+          style={{ flex: 1, padding: '12px', background: activeTab === 'TRACK' ? '#005A36' : '#EEE', color: activeTab === 'TRACK' ? '#FFF' : '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+        >
+          Track Ticket Status
+        </button>
+        <button
+          onClick={() => setActiveTab('ADMIN')}
+          style={{ flex: 1, padding: '12px', background: activeTab === 'ADMIN' ? '#005A36' : '#EEE', color: activeTab === 'ADMIN' ? '#FFF' : '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+        >
+          Admin Map Dashboard
+        </button>
+      </nav>
+
+      {/* TAB 1: SUBMIT ISSUE */}
+      {activeTab === 'REPORT' && (
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <h3>Submit Incident Report</h3>
+
+          {statusMsg && (
+            <div style={{ padding: '12px', background: statusMsg.includes('successfully') ? '#D4EDDA' : '#F8D7DA', color: statusMsg.includes('successfully') ? '#155724' : '#721C24', borderRadius: '4px' }}>
+              {statusMsg}
+            </div>
+          )}
+
+          <label>Category:</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ padding: '8px', borderRadius: '4px' }}>
+            <option>Damaged Road / Pothole</option>
+            <option>Water Leak / Pipe Burst</option>
+            <option>Sanitation / Drainage</option>
+            <option>Streetlight Fault</option>
+            <option>Illegal Dumping</option>
+          </select>
+
+          <label>Description:</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+            rows={4}
+            style={{ padding: '8px', borderRadius: '4px' }}
+          />
+
+          {/* Photo Upload Input */}
+          <label>Attach Photo Evidence:</label>
+          <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ padding: '4px' }} />
+          {photoBase64 && (
+            <img src={photoBase64} alt="Preview" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '4px', marginTop: '8px' }} />
+          )}
+
+          <label>Incident Location Pinpoint:</label>
+          <LeafletMap latitude={lat} longitude={lon} />
+
+          <button type="submit" style={{ padding: '12px', background: '#005A36', color: '#FFF', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
+            Dispatch Incident Report
+          </button>
+        </form>
+      )}
+
+      {/* TAB 2: TICKET TRACKER */}
+      {activeTab === 'TRACK' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h3>Public Ticket Tracker</h3>
+          <form onSubmit={handleTrackTicket} style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              placeholder="Enter Report Number (e.g. P4P-102938)"
+              value={searchTicketNum}
+              onChange={(e) => setSearchTicketNum(e.target.value)}
+              required
+              style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #CCC' }}
+            />
+            <button type="submit" style={{ padding: '10px 16px', background: '#005A36', color: '#FFF', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+              Track
+            </button>
+          </form>
+
+          {trackError && <p style={{ color: '#721C24', background: '#F8D7DA', padding: '10px', borderRadius: '4px' }}>{trackError}</p>}
+
+          {trackedReport && (
+            <div style={{ padding: '16px', border: '1px solid #DDD', borderRadius: '8px', background: '#FAFAFA' }}>
+              <h4>Ticket Details: {trackedReport.reportNumber}</h4>
+              <p><strong>Category:</strong> {trackedReport.category}</p>
+              <p><strong>Description:</strong> {trackedReport.description}</p>
+              <p>
+                <strong>Status:</strong>{' '}
+                <span style={{ padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', ...getStatusBadgeStyle(trackedReport.status) }}>
+                  {trackedReport.status}
+                </span>
+              </p>
+              {trackedReport.assignedCrew && <p><strong>Assigned Crew:</strong> {trackedReport.assignedCrew}</p>}
+              {trackedReport.photoBase64 && (
+                <div>
+                  <p><strong>Submitted Photo:</strong></p>
+                  <img src={trackedReport.photoBase64} alt="Incident" style={{ width: '100%', maxHeight: '250px', objectFit: 'cover', borderRadius: '4px' }} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: ADMIN DASHBOARD & MAP ACTIONS */}
+      {activeTab === 'ADMIN' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h3>Municipal Administrative Dashboard</h3>
+
+          {/* Filters */}
+          <div style={{ display: 'flex', gap: '12px', background: '#F0F0F0', padding: '12px', borderRadius: '6px' }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block' }}>Filter Status:</label>
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ padding: '6px', borderRadius: '4px' }}>
+                <option value="ALL">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block' }}>Filter Category:</label>
+              <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} style={{ padding: '6px', borderRadius: '4px' }}>
+                <option value="ALL">All Categories</option>
+                <option value="Damaged Road / Pothole">Damaged Road / Pothole</option>
+                <option value="Water Leak / Pipe Burst">Water Leak / Pipe Burst</option>
+                <option value="Sanitation / Drainage">Sanitation / Drainage</option>
+                <option value="Streetlight Fault">Streetlight Fault</option>
+                <option value="Illegal Dumping">Illegal Dumping</option>
+              </select>
+            </div>
+          </div>
+
+          <LeafletMap latitude={lat} longitude={lon} reports={reports} />
+
+          {/* Action List / Management Panel */}
+          <h4>Logged Incidents ({reports.length})</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {reports.map((rep) => (
+              <div
+                key={rep.id}
+                onClick={() => setSelectedReport(rep)}
+                style={{
+                  padding: '12px',
+                  border: '1px solid #CCC',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  background: selectedReport?.id === rep.id ? '#E6F0EC' : '#FFF',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong>{rep.reportNumber} — {rep.category}</strong>
+                  <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', ...getStatusBadgeStyle(rep.status) }}>
+                    {rep.status}
+                  </span>
+                </div>
+                <p style={{ margin: '4px 0', fontSize: '14px', color: '#555' }}>{rep.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Admin Detail Modal / Drawer */}
+          {selectedReport && (
+            <div style={{ border: '2px solid #005A36', padding: '16px', borderRadius: '8px', background: '#FFF' }}>
+              <h4>Manage Ticket: {selectedReport.reportNumber}</h4>
+              <p><strong>Category:</strong> {selectedReport.category}</p>
+              <p><strong>Description:</strong> {selectedReport.description}</p>
+              {selectedReport.photoBase64 && (
+                <img src={selectedReport.photoBase64} alt="Proof" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '4px' }} />
+              )}
+
+              <div style={{ margin: '12px 0' }}>
+                <label style={{ display: 'block', fontWeight: 'bold' }}>Assign Work Crew:</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Roads Unit 2"
+                  value={newCrew}
+                  onChange={(e) => setNewCrew(e.target.value)}
+                  style={{ padding: '8px', width: '100%', borderRadius: '4px', border: '1px solid #CCC', marginTop: '4px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                <button onClick={() => handleUpdateStatus(selectedReport.id, 'Pending')} style={{ flex: 1, padding: '8px', background: '#FFC107', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Set Pending</button>
+                <button onClick={() => handleUpdateStatus(selectedReport.id, 'In Progress')} style={{ flex: 1, padding: '8px', background: '#17A2B8', color: '#FFF', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Set In Progress</button>
+                <button onClick={() => handleUpdateStatus(selectedReport.id, 'Resolved')} style={{ flex: 1, padding: '8px', background: '#28A745', color: '#FFF', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Set Resolved</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;

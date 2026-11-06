@@ -17,7 +17,7 @@ app.use((req, res, next) => {
   // 2. Define which domains are allowed to talk to your API
   const allowedOrigins = [
     'http://localhost:5173',                      // Your local Vite frontend
-    'https://onrender.com'          // Replace with your actual live Render frontend URL
+    'https://people4people.onrender.com'          // Replace with your actual live Render frontend URL
   ];
 
   // 3. If the request is from an allowed domain, set the header dynamically

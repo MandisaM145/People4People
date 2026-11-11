@@ -1,8 +1,2 @@
-import { Module } from '@nestjs/common';
-
-@Module({
-  imports: [],
-  controllers: [],
-  providers: [],
-})
-export class AppModule {}
+// The active backend is the Express application in main.ts.
+export {};

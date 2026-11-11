@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 export interface RoadRoute {
   distance: number;
   duration: number;
@@ -6,10 +7,17 @@ export interface RoadRoute {
 export class OsrmService {
   private readonly baseUrl = (process.env.OSRM_URL || 'http://localhost:5000').replace(/\/$/, '');
 
+=======
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class OsrmService {
+>>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
   async calculateRoadDistance(
     lat1: number,
     lon1: number,
     lat2: number,
+<<<<<<< HEAD
     lon2: number,
   ): Promise<RoadRoute> {
     for (const value of [lat1, lon1, lat2, lon2]) {
@@ -26,5 +34,15 @@ export class OsrmService {
     const route = data.routes?.[0];
     if (data.code !== 'Ok' || !route) throw new Error('OSRM could not find a route');
     return { distance: route.distance / 1000, duration: route.duration };
+=======
+    lon2: number
+  ): Promise<{ distance: number; duration: number }> {
+    // Stub implementation for now
+    console.log(`Calculating route from (${lat1}, ${lon1}) to (${lat2}, ${lon2})`);
+    return {
+      distance: 15.5,
+      duration: 1200,
+    };
+>>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
   }
 }

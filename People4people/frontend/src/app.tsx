@@ -82,13 +82,9 @@ export const App: React.FC = () => {
   useEffect(() => {
     // Check if user is already logged in
     const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    if (storedUser && storedToken) {
+    if (storedUser) {
       setUser(JSON.parse(storedUser));
       setAuthScreen('app');
-    } else {
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
     }
 
     if (navigator.geolocation) {
@@ -101,10 +97,6 @@ export const App: React.FC = () => {
   }, []);
 
   const fetchReports = async () => {
-    if (!localStorage.getItem('token')) {
-      setReports([]);
-      return;
-    }
     try {
       const query = new URLSearchParams({
         category: filterCategory,
@@ -379,7 +371,7 @@ export const App: React.FC = () => {
   }
 
   if (authScreen === 'mfa') {
-    return <MFA userId={mfaUserId} adminEmail={mfaAdminEmail} developmentOtpCode={developmentOtpCode} onMFASuccess={handleMFASuccess} onBackToLogin={() => setAuthScreen('login')} />;
+    return <MFA userId={mfaUserId} adminEmail={mfaAdminEmail} onMFASuccess={handleMFASuccess} onBackToLogin={() => setAuthScreen('login')} />;
   }
 
   // Main app

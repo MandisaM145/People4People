@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+<<<<<<< HEAD
     "leaflet": "^1.9.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -20,5 +21,21 @@
     "@vitejs/plugin-react": "^4.7.0",
     "typescript": "^5.0.0",
     "vite": "^6.4.3"
+=======
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "leaflet": "^1.9.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/leaflet": "^1.9.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+>>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
   }
 }

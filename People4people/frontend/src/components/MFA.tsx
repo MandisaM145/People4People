@@ -3,12 +3,19 @@ import React, { useState } from 'react';
 interface MFAProps {
   userId: string;
   adminEmail: string;
+<<<<<<< HEAD
   developmentOtpCode?: string;
+=======
+>>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
   onMFASuccess: (user: any) => void;
   onBackToLogin: () => void;
 }
 
+<<<<<<< HEAD
 export const MFA: React.FC<MFAProps> = ({ userId, adminEmail, developmentOtpCode, onMFASuccess, onBackToLogin }) => {
+=======
+export const MFA: React.FC<MFAProps> = ({ userId, adminEmail, onMFASuccess, onBackToLogin }) => {
+>>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
   const [otpCode, setOtpCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -89,12 +96,15 @@ export const MFA: React.FC<MFAProps> = ({ userId, adminEmail, developmentOtpCode
             </div>
           )}
 
+<<<<<<< HEAD
           {developmentOtpCode && (
             <div style={{ padding: '12px', background: '#FFF3CD', color: '#856404', borderRadius: '4px' }}>
               Local development OTP: <strong>{developmentOtpCode}</strong>
             </div>
           )}
 
+=======
+>>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
           {successMsg && (
             <div style={{ 
               padding: '12px', 

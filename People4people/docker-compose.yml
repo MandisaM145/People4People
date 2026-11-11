@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+version: '3.8'
+
+>>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
 services:
   backend:
     build:
@@ -5,6 +10,7 @@ services:
       dockerfile: Dockerfile
     container_name: p4p_backend
     environment:
+<<<<<<< HEAD
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3000
       DB_HOST: postgres
@@ -35,6 +41,15 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+=======
+      DATABASE_URL: postgresql://p4p_admin:p4p_password@postgres:5432/people_for_people
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+>>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
 
   frontend:
     build:
@@ -44,14 +59,19 @@ services:
     ports:
       - "80:80"
     depends_on:
+<<<<<<< HEAD
       backend:
         condition: service_started
     restart: unless-stopped
+=======
+      - backend
+>>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
 
   postgres:
     image: postgis/postgis:15-3.3
     container_name: p4p_postgres
     environment:
+<<<<<<< HEAD
       POSTGRES_DB: ${POSTGRES_DB:-people_for_people}
       POSTGRES_USER: ${POSTGRES_USER:-p4p_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your environment}
@@ -63,6 +83,50 @@ services:
       timeout: 5s
       retries: 12
     restart: unless-stopped
+=======
+      POSTGRES_DB: people_for_people
+      POSTGRES_USER: p4p_admin
+      POSTGRES_PASSWORD: p4p_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: p4p_redis
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:RELEASE.2023-09-04T19-57-37Z
+    container_name: p4p_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.3
+    container_name: p4p_keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: start-dev
+    ports:
+      - "8080:8080"
+
+  osrm:
+    image: osrm/osrm-backend:v5.25.0
+    container_name: p4p_osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./osrm-data:/data
+>>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
 
 volumes:
   pgdata:

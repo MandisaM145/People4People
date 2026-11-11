@@ -33,11 +33,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onShowRegister }) 
 
       if (response.ok) {
         if (data.status === 'mfa_required') {
-<<<<<<< HEAD
           // Admin MFA is verified separately before a session is issued.
-=======
-          // Admin with MFA enabled - will be handled by parent component
->>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
           onLoginSuccess({
             ...data,
             mfaRequired: true,
@@ -172,9 +168,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onShowRegister }) 
         <div style={{ marginTop: '20px', padding: '12px', background: '#F0F8FF', borderRadius: '4px' }}>
           <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', color: '#004085', fontSize: '12px' }}>Demo Credentials:</p>
           <p style={{ margin: '4px 0', fontSize: '11px', color: '#004085' }}>
-<<<<<<< HEAD
-            Demo accounts are configured by the system administrator.
-=======
             <strong>Admin:</strong> admin@people4people.co.za / admin123
           </p>
           <p style={{ margin: '4px 0', fontSize: '11px', color: '#004085' }}>
@@ -182,7 +175,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onShowRegister }) 
           </p>
           <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#004085' }}>
             <strong>SuperAdmin:</strong> superadmin@people4people.co.za / SuperAdmin@123
->>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
           </p>
         </div>
       </div>

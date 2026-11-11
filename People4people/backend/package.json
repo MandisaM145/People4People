@@ -13,7 +13,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-<<<<<<< HEAD
     "dotenv": "^18.0.9",
     "express": "^4.22.3",
     "express-rate-limit": "^8.7.3",
@@ -28,29 +27,5 @@
     "@types/pg": "^8.23.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
-=======
-    "@nestjs/common": "^9.0.0",
-    "@nestjs/config": "^2.3.0",
-    "@nestjs/core": "^9.0.0",
-    "@nestjs/platform-express": "^9.0.0",
-    "@nestjs/typeorm": "^9.0.0",
-    "express": "^4.18.2",
-    "geojson": "^0.5.0",
-    "nodemailer": "^6.9.7",
-    "pg": "^8.10.0",
-    "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.8.0",
-    "typeorm": "^0.3.0"
-  },
-  "devDependencies": {
-    "@types/express": "^4.17.17",
-    "@types/node": "^20.0.0",
-    "@types/nodemailer": "^6.4.14",
-    "typescript": "^5.0.0",
-    "ts-node": "^10.9.1"
-  },
-  "allowScripts": {
-    "@nestjs/core@9.4.3": true
->>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
   }
 }

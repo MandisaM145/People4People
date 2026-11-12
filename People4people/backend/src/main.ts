@@ -12,11 +12,14 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = [process.env.DATABASE_URL, process.env.POSTGRES_URL, process.env.INTERNAL_DATABASE_URL]
+  .map((value) => value?.trim())
+  .find((value): value is string => Boolean(value));
+const DB_PASSWORD = process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD;
 const passwordHashAsync = promisify(crypto.scrypt);
 
-if (!DATABASE_URL && process.env.NODE_ENV === 'production' && !process.env.DB_PASSWORD) {
-  throw new Error('Configure DATABASE_URL or DB_PASSWORD for PostgreSQL in production');
+if (!DATABASE_URL && !DB_PASSWORD) {
+  throw new Error('PostgreSQL is not configured. Set DATABASE_URL (Render PostgreSQL Internal Database URL) or DB_HOST, DB_NAME, DB_USER, and DB_PASSWORD.');
 }
 
 const pool = new Pool(DATABASE_URL
@@ -25,7 +28,7 @@ const pool = new Pool(DATABASE_URL
       host: process.env.DB_HOST || 'localhost',
       port: Number(process.env.DB_PORT || 5432),
       user: process.env.DB_USER || 'p4p_admin',
-      password: process.env.DB_PASSWORD,
+      password: DB_PASSWORD,
       database: process.env.DB_NAME || 'people_for_people',
     });
 

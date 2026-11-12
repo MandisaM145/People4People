@@ -3,10 +3,6 @@ import React, { useState } from 'react';
 interface MFAProps {
   userId: string;
   adminEmail: string;
-<<<<<<< HEAD
-  developmentOtpCode?: string;
-=======
->>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
   onMFASuccess: (user: any) => void;
   onBackToLogin: () => void;
 }
@@ -15,11 +11,7 @@ interface MFAProps {
 export const MFA: React.FC<MFAProps> = ({ userId, adminEmail, developmentOtpCode, onMFASuccess, onBackToLogin }) => {
 =======
 export const MFA: React.FC<MFAProps> = ({ userId, adminEmail, onMFASuccess, onBackToLogin }) => {
->>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
-  const [otpCode, setOtpCode] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
 
   const handleVerifyMFA = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,42 +1,74 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+
+async function apiRequest(endpoint: string, options: RequestInit = {}) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || `API error: ${response.status}`);
+  }
+
+  return data;
+}
 
 export const apiService = {
   // Reports API
-  async createReport(reportData: { description: string; category: string; latitude: number; longitude: number }) {
-    const res = await fetch(`${API_BASE_URL}/reports`, {
+  async createReport(reportData: {
+    description: string;
+    category: string;
+    latitude: number;
+    longitude: number;
+  }) {
+    return apiRequest('/reports', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(reportData),
     });
-    return res.json();
   },
 
   async getReports() {
-    const res = await fetch(`${API_BASE_URL}/reports`);
-    return res.json();
+    return apiRequest('/reports');
   },
 
   // Job Cards API
   async getJobCards() {
-    const res = await fetch(`${API_BASE_URL}/job-cards`);
-    return res.json();
+    return apiRequest('/job-cards');
   },
 
-  async createJobCard(reportId: string, assignedCrewId: string, priority = 'MEDIUM') {
-    const res = await fetch(`${API_BASE_URL}/job-cards`, {
+  async createJobCard(
+    reportId: string,
+    assignedCrewId: string,
+    priority = 'MEDIUM'
+  ) {
+    return apiRequest('/job-cards', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reportId, assignedCrewId, priority }),
+      body: JSON.stringify({
+        reportId,
+        assignedCrewId,
+        priority,
+      }),
     });
-    return res.json();
   },
 
-  async updateJobStatus(id: string, status: string, resolutionNotes?: string) {
-    const res = await fetch(`${API_BASE_URL}/job-cards/${id}/status`, {
+  async updateJobStatus(
+    id: string,
+    status: string,
+    resolutionNotes?: string
+  ) {
+    return apiRequest(`/job-cards/${id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, resolutionNotes }),
+      body: JSON.stringify({
+        status,
+        resolutionNotes,
+      }),
     });
-    return res.json();
-  }
+  },
 };

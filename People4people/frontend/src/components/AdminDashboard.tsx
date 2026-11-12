@@ -47,11 +47,7 @@ export const AdminDashboard: React.FC = () => {
         <h3>Assign Incident to Field Crew</h3>
         <select value={selectedReportId} onChange={(e) => setSelectedReportId(e.target.value)} required style={{ padding: '8px', width: '100%', marginBottom: '8px' }}>
           <option value="">Select Unassigned Incident Report...</option>
-<<<<<<< HEAD
-          {reports.filter(r => r.status === 'Pending').map((r) => (
-=======
           {reports.filter(r => r.status === 'NEW').map((r) => (
->>>>>>> fd97a80cb2fd24b1c20bc0898a0bcd57512d0ac2
             <option key={r.id} value={r.id}>{r.reportNumber} - {r.category}: {r.description}</option>
           ))}
         </select>

@@ -86,6 +86,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Retain /api/v1 routes while accepting the documented unversioned REST paths.
+app.use((req, _res, next) => {
+  if (/^\/api\/(reports|auth|job-cards)(\/|$)/.test(req.url)) {
+    req.url = req.url.replace(/^\/api\//, '/api/v1/');
+  }
+  next();
+});
+
 const normalizeEmail = (value: unknown): string => String(value || '').trim().toLowerCase();
 const validEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 const validString = (value: unknown, min = 1, max = 5000): value is string =>
@@ -272,6 +280,11 @@ app.get('/health', asyncRoute(async (_req, res) => {
   res.json({ status: 'ok', database: 'connected' });
 }));
 
+app.get('/api/provinces', (_req, res) => res.json([
+  'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo',
+  'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape',
+]));
+
 const osrmService = new OsrmService();
 app.get('/api/v1/routing/distance', asyncRoute(async (req, res) => {
   const values = ['lat1', 'lon1', 'lat2', 'lon2'].map((key) => Number(req.query[key]));
@@ -391,6 +404,15 @@ app.post('/api/v1/auth/verify-mfa', authLimiter, asyncRoute(async (req, res) => 
   return res.json({ status: 'success', message: 'MFA verified successfully', token, user: safeUser(users[0]) });
 }));
 
+app.get('/api/users/me', authenticate, asyncRoute(async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT id,email,name,phone,role,verified,mfa_enabled,created_at FROM users WHERE id=$1',
+    [req.authUser!.id],
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'User not found' });
+  return res.json(safeUser(rows[0]));
+}));
+
 app.post('/api/v1/auth/logout', authenticate, asyncRoute(async (req, res) => {
   const token = req.header('authorization')!.replace(/^Bearer\s+/i, '');
   await pool.query('DELETE FROM sessions WHERE token_hash=$1', [crypto.createHash('sha256').update(token).digest('hex')]);
@@ -488,6 +510,12 @@ app.get('/api/v1/reports/track/:ticketNumber', asyncRoute(async (req, res) => {
   delete report.photoBase64;
   delete report.completionPhotoBase64;
   return res.json({ found: true, report });
+}));
+
+app.get('/api/v1/reports/:id', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM reports WHERE id=$1', [req.params.id]);
+  if (!rows[0]) return res.status(404).json({ error: 'Report not found' });
+  return res.json(mapReport(rows[0], true));
 }));
 
 app.patch('/api/v1/reports/:id', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {

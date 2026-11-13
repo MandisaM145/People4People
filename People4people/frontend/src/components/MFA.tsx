@@ -34,7 +34,7 @@ export const MFA: React.FC<MFAProps> = ({
 
     try {
       const response = await apiFetch(
-        'api/v1/auth/verify-mfa',
+        '/auth/verify-mfa',
         {
           method: 'POST',
           headers: {

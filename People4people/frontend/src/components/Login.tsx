@@ -37,7 +37,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onShowRegister }) 
           // Admin MFA is verified separately before a session is issued.
           onLoginSuccess({
             ...data,
-            mfaRequired: true,
+            mfaRequired: false,
           });
         } else {
           // Citizen or admin without MFA

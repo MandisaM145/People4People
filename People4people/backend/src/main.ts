@@ -521,7 +521,7 @@ app.get('/api/v1/reports/:id', authenticate, requireRole('admin', 'superadmin'),
   return res.json(mapReport(rows[0], true));
 }));
 
-app.patch('/api/v1/reports/:id', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
+app.patch('/api/reports/:id', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
   const { status, assignedCrew, completionPhotoBase64 } = req.body || {};
   const allowed = ['Pending', 'In Progress', 'Resolved'];
   if (status !== undefined && !allowed.includes(status)) return res.status(400).json({ error: 'Invalid report status' });

@@ -51,7 +51,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegistrationSuccess, onBac
     }
 
     try {
-      const response = await apiFetch('/auth/register', {
+      const response = await apiFetch('api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -91,7 +91,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegistrationSuccess, onBac
     }
 
     try {
-      const response = await apiFetch('/auth/verify-email', {
+      const response = await apiFetch('api/v1/auth/verify-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

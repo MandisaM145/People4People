@@ -283,7 +283,7 @@ app.get('/health', asyncRoute(async (_req, res) => {
   res.json({ status: 'ok', database: 'connected' });
 }));
 
-app.get('/api/provinces', (_req, res) => res.json([
+app.get('/api/v1/provinces', (_req, res) => res.json([
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo',
   'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape',
 ]));
@@ -304,8 +304,8 @@ app.post('/api/v1/auth/register', authLimiter, asyncRoute(async (req, res) => {
   const { email: rawEmail, phone, name, password, confirmPassword } = req.body || {};
   const email = normalizeEmail(rawEmail);
   if (!validEmail(email) || !validString(phone, 6, 40) || !validString(name, 2, 120)
-      || typeof password !== 'string' || password.length < 12 || password.length > 200) {
-    return res.status(400).json({ error: 'Valid email, phone, name, and password (12+ characters) are required' });
+      || typeof password !== 'string' || password.length < 8 || password.length > 200) {
+    return res.status(400).json({ error: 'Valid email, phone, name, and password (8 characters) are required' });
   }
   if (password !== confirmPassword) return res.status(400).json({ error: 'Passwords do not match' });
   const code = crypto.randomInt(100000, 1000000).toString();
@@ -407,7 +407,7 @@ app.post('/api/v1/auth/verify-mfa', authLimiter, asyncRoute(async (req, res) => 
   return res.json({ status: 'success', message: 'MFA verified successfully', token, user: safeUser(users[0]) });
 }));
 
-app.get('/api/users/me', authenticate, asyncRoute(async (req, res) => {
+app.get('/api/v1/users/me', authenticate, asyncRoute(async (req, res) => {
   const { rows } = await pool.query(
     'SELECT id,email,name,phone,role,verified,mfa_enabled,created_at FROM users WHERE id=$1',
     [req.authUser!.id],

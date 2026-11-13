@@ -10,7 +10,7 @@ export const ServiceForm = () => {
     setStatusMessage('Sending...');
 
     try {
-      const response = await fetch('/api/form', {
+      const response = await fetch('/api/v1/form', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

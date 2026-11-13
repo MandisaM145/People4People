@@ -104,7 +104,7 @@ export const App: React.FC = () => {
         status: filterStatus,
       }).toString();
       const token = localStorage.getItem('token');
-      const res = await apiFetch(`/reports?${query}`, {
+      const res = await apiFetch(`api/v1/reports?${query}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await res.json();

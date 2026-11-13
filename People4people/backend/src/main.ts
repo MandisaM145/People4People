@@ -381,7 +381,7 @@ app.post('/api/v1/auth/login', authLimiter, asyncRoute(async (req, res) => {
   return res.json({ status: 'success', message: 'Login successful', token, user: safeUser(user) });
 }));
 
-app.post('/api/v1/auth/verify-mfa', authLimiter, asyncRoute(async (req, res) => {
+app.post('/auth/verify-mfa', authLimiter, asyncRoute(async (req, res) => {
   const { userId, otpCode } = req.body || {};
   if (!validString(userId, 1, 100) || !/^\d{6}$/.test(String(otpCode || ''))) {
     return res.status(400).json({ error: 'Valid user ID and six-digit OTP are required' });
@@ -407,7 +407,7 @@ app.post('/api/v1/auth/verify-mfa', authLimiter, asyncRoute(async (req, res) => 
   return res.json({ status: 'success', message: 'MFA verified successfully', token, user: safeUser(users[0]) });
 }));
 
-app.get('/api/v1/users/me', authenticate, asyncRoute(async (req, res) => {
+app.get('/users/me', authenticate, asyncRoute(async (req, res) => {
   const { rows } = await pool.query(
     'SELECT id,email,name,phone,role,verified,mfa_enabled,created_at FROM users WHERE id=$1',
     [req.authUser!.id],
@@ -416,18 +416,18 @@ app.get('/api/v1/users/me', authenticate, asyncRoute(async (req, res) => {
   return res.json(safeUser(rows[0]));
 }));
 
-app.post('/api/v1/auth/logout', authenticate, asyncRoute(async (req, res) => {
+app.post('/auth/logout', authenticate, asyncRoute(async (req, res) => {
   const token = req.header('authorization')!.replace(/^Bearer\s+/i, '');
   await pool.query('DELETE FROM sessions WHERE token_hash=$1', [crypto.createHash('sha256').update(token).digest('hex')]);
   return res.json({ status: 'success' });
 }));
 
-app.get('/api/v1/admin/users', authenticate, requireRole('superadmin'), asyncRoute(async (_req, res) => {
+app.get('/admin/users', authenticate, requireRole('superadmin'), asyncRoute(async (_req, res) => {
   const { rows } = await pool.query('SELECT * FROM users ORDER BY created_at DESC');
   return res.json({ users: rows.map(safeUser) });
 }));
 
-app.post('/api/v1/admin/add-admin', authenticate, requireRole('superadmin'), asyncRoute(async (req, res) => {
+app.post('/admin/add-admin', authenticate, requireRole('superadmin'), asyncRoute(async (req, res) => {
   const { adminEmail: rawEmail, adminName, adminPhone } = req.body || {};
   const email = normalizeEmail(rawEmail);
   if (!validEmail(email) || !validString(adminName, 2, 120) || !validString(adminPhone, 6, 40)) {
@@ -454,14 +454,14 @@ app.post('/api/v1/admin/add-admin', authenticate, requireRole('superadmin'), asy
   return res.status(201).json({ status: 'success', message: 'Admin account created and credentials sent', admin: { id, email, name: adminName.trim() } });
 }));
 
-app.delete('/api/v1/admin/users/:userId', authenticate, requireRole('superadmin'), asyncRoute(async (req, res) => {
+app.delete('/admin/users/:userId', authenticate, requireRole('superadmin'), asyncRoute(async (req, res) => {
   if (req.params.userId === req.authUser!.id) return res.status(400).json({ error: 'Cannot delete the active super-admin account' });
   const result = await pool.query('DELETE FROM users WHERE id=$1 RETURNING id,email,name,role', [req.params.userId]);
   if (!result.rowCount) return res.status(404).json({ error: 'User not found' });
   return res.json({ status: 'success', message: 'User deleted', user: result.rows[0] });
 }));
 
-app.post('/api/v1/reports', publicWriteLimiter, asyncRoute(async (req, res) => {
+app.post('/reports', publicWriteLimiter, asyncRoute(async (req, res) => {
   const { description, category, latitude, longitude, photoBase64, email: rawEmail, phone, addressInput } = req.body || {};
   const email = rawEmail ? normalizeEmail(rawEmail) : '';
   if (!validString(description, 5, 5000) || !validString(category, 2, 120)
@@ -494,7 +494,7 @@ app.post('/api/v1/reports', publicWriteLimiter, asyncRoute(async (req, res) => {
   return res.status(201).json({ status: 'success', reportNumber: report.reportNumber, message: 'Report submitted successfully', data: report });
 }));
 
-app.get('/api/v1/reports', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
+app.get('/reports', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
   const category = typeof req.query.category === 'string' ? req.query.category : 'ALL';
   const status = typeof req.query.status === 'string' ? req.query.status : 'ALL';
   const allowedStatuses = ['ALL', 'Pending', 'In Progress', 'Resolved'];
@@ -506,7 +506,7 @@ app.get('/api/v1/reports', authenticate, requireRole('admin', 'superadmin'), asy
   return res.json(rows.map((row) => mapReport(row, true)));
 }));
 
-app.get('/api/v1/reports/track/:ticketNumber', asyncRoute(async (req, res) => {
+app.get('/reports/track/:ticketNumber', asyncRoute(async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM reports WHERE UPPER(report_number)=UPPER($1)', [req.params.ticketNumber.trim()]);
   if (!rows[0]) return res.status(404).json({ found: false, message: 'Ticket not found' });
   const report = mapReport(rows[0]);
@@ -515,13 +515,13 @@ app.get('/api/v1/reports/track/:ticketNumber', asyncRoute(async (req, res) => {
   return res.json({ found: true, report });
 }));
 
-app.get('/api/v1/reports/:id', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
+app.get('/reports/:id', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM reports WHERE id=$1', [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Report not found' });
   return res.json(mapReport(rows[0], true));
 }));
 
-app.patch('/api/reports/:id', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
+app.patch('/reports/:id', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
   const { status, assignedCrew, completionPhotoBase64 } = req.body || {};
   const allowed = ['Pending', 'In Progress', 'Resolved'];
   if (status !== undefined && !allowed.includes(status)) return res.status(400).json({ error: 'Invalid report status' });
@@ -536,20 +536,20 @@ app.patch('/api/reports/:id', authenticate, requireRole('admin', 'superadmin'), 
     : res.status(404).json({ status: 'error', message: 'Report not found' });
 }));
 
-app.delete('/api/v1/reports/:id', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
+app.delete('/reports/:id', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
   const { rows } = await pool.query('DELETE FROM reports WHERE id=$1 RETURNING *', [req.params.id]);
   return rows[0] ? res.json({ status: 'success', message: 'Report deleted', data: mapReport(rows[0], true) })
     : res.status(404).json({ status: 'error', message: 'Report not found' });
 }));
 
-app.get('/api/v1/job-cards', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (_req, res) => {
+app.get('/job-cards', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (_req, res) => {
   const { rows } = await pool.query(
     `SELECT j.*, row_to_json(r) AS report FROM job_cards j JOIN reports r ON r.id=j.report_id ORDER BY j.created_at DESC`,
   );
   return res.json(rows.map(mapJobCard));
 }));
 
-app.post('/api/v1/job-cards', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
+app.post('/job-cards', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
   const { reportId, assignedCrewId, priority = 'MEDIUM' } = req.body || {};
   if (!validString(reportId, 1, 100) || !validString(assignedCrewId, 1, 120)
       || !['LOW', 'MEDIUM', 'HIGH', 'URGENT'].includes(priority)) {

@@ -3,6 +3,7 @@ import { LeafletMap } from './components/LeafletMap';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { MFA } from './components/MFA';
+import { apiFetch } from './services/http';
 
 type Tab = 'REPORT' | 'TRACK' | 'ADMIN';
 type AuthScreen = 'login' | 'register' | 'mfa' | 'app';
@@ -103,7 +104,7 @@ export const App: React.FC = () => {
         status: filterStatus,
       }).toString();
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/v1/reports?${query}`, {
+      const res = await apiFetch(`/reports?${query}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await res.json();
@@ -269,7 +270,7 @@ export const App: React.FC = () => {
     setStatusMsg('Submitting report and sending confirmation...');
 
     try {
-      const response = await fetch('/api/v1/reports', {
+      const response = await apiFetch('/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -307,7 +308,7 @@ export const App: React.FC = () => {
     setTrackedReport(null);
 
     try {
-      const res = await fetch(`/api/v1/reports/track/${searchTicketNum}`);
+      const res = await apiFetch(`/reports/track/${encodeURIComponent(searchTicketNum)}`);
       const data = await res.json();
       if (data.found) {
         setTrackedReport(data.report);
@@ -331,7 +332,7 @@ export const App: React.FC = () => {
       }
 
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/v1/reports/${id}`, {
+      const res = await apiFetch(`/reports/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

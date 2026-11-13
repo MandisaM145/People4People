@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../services/http';
 
 interface LoginProps {
   onLoginSuccess: (user: any) => void;
@@ -23,7 +24,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onShowRegister }) 
         return;
       }
 
-      const response = await fetch('/api/v1/auth/login', {
+      const response = await apiFetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

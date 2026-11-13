@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../services/http';
 
 interface RegisterProps {
   onRegistrationSuccess: () => void;
@@ -50,7 +51,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegistrationSuccess, onBac
     }
 
     try {
-      const response = await fetch('/api/v1/auth/register', {
+      const response = await apiFetch('/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -90,7 +91,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegistrationSuccess, onBac
     }
 
     try {
-      const response = await fetch('/api/v1/auth/verify-email', {
+      const response = await apiFetch('/auth/verify-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

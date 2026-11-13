@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { apiFetch } from '../services/http';
 
 interface MFAProps {
   userId: string;
@@ -32,8 +33,8 @@ export const MFA: React.FC<MFAProps> = ({
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/v1/auth/verify-mfa`,
+      const response = await apiFetch(
+        '/auth/verify-mfa',
         {
           method: 'POST',
           headers: {

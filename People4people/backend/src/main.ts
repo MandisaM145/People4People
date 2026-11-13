@@ -71,10 +71,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Retain /api/v1 routes while accepting the documented unversioned REST paths.
+// Strip API version prefixes so /api/* and /api/v1/* reach the same handlers.
 app.use((req, _res, next) => {
-  if (/^\/api\/(reports|auth|job-cards)(\/|$)/.test(req.url)) {
-    req.url = req.url.replace(/^\/api\//, '/api/v1/');
+  const apiV1Prefix = '/api/v1/';
+  const apiPrefix = '/api/';
+  if (req.url.startsWith(apiV1Prefix)) {
+    req.url = req.url.slice(apiV1Prefix.length - 1);
+  } else if (req.url.startsWith(apiPrefix)) {
+    req.url = req.url.slice(apiPrefix.length - 1);
   }
   next();
 });
@@ -265,7 +269,7 @@ app.get('/health', asyncRoute(async (_req, res) => {
   res.json({ status: 'ok', database: 'connected' });
 }));
 
-app.get('/api/v1/provinces', (_req, res) => res.json([
+app.get('/provinces', (_req, res) => res.json([
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo',
   'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape',
 ]));
@@ -282,7 +286,7 @@ app.get('/api/v1/routing/distance', asyncRoute(async (req, res) => {
   }
 }));
 
-app.post('/api/v1/auth/register', authLimiter, asyncRoute(async (req, res) => {
+app.post('/auth/register', authLimiter, asyncRoute(async (req, res) => {
   const { email: rawEmail, phone, name, password, confirmPassword } = req.body || {};
   const email = normalizeEmail(rawEmail);
   if (!validEmail(email) || !validString(phone, 6, 40) || !validString(name, 2, 120)
@@ -316,7 +320,7 @@ app.post('/api/v1/auth/register', authLimiter, asyncRoute(async (req, res) => {
   });
 }));
 
-app.post('/api/v1/auth/verify-email', authLimiter, asyncRoute(async (req, res) => {
+app.post('/auth/verify-email', authLimiter, asyncRoute(async (req, res) => {
   const { userId, verificationCode } = req.body || {};
   if (!validString(userId, 1, 100) || !/^\d{6}$/.test(String(verificationCode || ''))) {
     return res.status(400).json({ error: 'Valid user ID and six-digit verification code are required' });
@@ -331,7 +335,7 @@ app.post('/api/v1/auth/verify-email', authLimiter, asyncRoute(async (req, res) =
   return res.json({ status: 'success', message: 'Email verified successfully' });
 }));
 
-app.post('/api/v1/auth/login', authLimiter, asyncRoute(async (req, res) => {
+app.post('/auth/login', authLimiter, asyncRoute(async (req, res) => {
   const email = normalizeEmail(req.body?.email);
   const password = req.body?.password;
   if (!validEmail(email) || typeof password !== 'string') return res.status(400).json({ error: 'Email and password required' });
@@ -563,7 +567,7 @@ app.post('/job-cards', authenticate, requireRole('admin', 'superadmin'), asyncRo
   }
 }));
 
-app.patch('/api/v1/job-cards/:id/status', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
+app.patch('/job-cards/:id/status', authenticate, requireRole('admin', 'superadmin'), asyncRoute(async (req, res) => {
   const { status, resolutionNotes } = req.body || {};
   if (!['OPEN', 'IN_PROGRESS', 'COMPLETED'].includes(status)) return res.status(400).json({ error: 'Invalid job status' });
   const client = await pool.connect();

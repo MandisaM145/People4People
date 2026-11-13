@@ -1,7 +1,7 @@
 import express, { NextFunction, Request, Response } from 'express';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
-import { Pool } from 'pg';
+import { pool } from './config/database';
 import { promisify } from 'util';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -12,25 +12,7 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const DATABASE_URL = [process.env.DATABASE_URL, process.env.POSTGRES_URL, process.env.INTERNAL_DATABASE_URL]
-  .map((value) => value?.trim())
-  .find((value): value is string => Boolean(value));
-const DB_PASSWORD = process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD;
 const passwordHashAsync = promisify(crypto.scrypt);
-
-if (!DATABASE_URL && !DB_PASSWORD) {
-  throw new Error('PostgreSQL is not configured. Set DATABASE_URL (Render PostgreSQL Internal Database URL) or DB_HOST, DB_NAME, DB_USER, and DB_PASSWORD.');
-}
-
-const pool = new Pool(DATABASE_URL
-  ? { connectionString: DATABASE_URL }
-  : {
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT || 5432),
-      user: process.env.DB_USER || 'p4p_admin',
-      password: DB_PASSWORD,
-      database: process.env.DB_NAME || 'people_for_people',
-    });
 
 interface AuthenticatedRequest extends Request {
   authUser?: { id: string; email: string; name: string; role: string };

@@ -5,6 +5,8 @@ import { Register } from './components/Register';
 import { MFA } from './components/MFA';
 import { apiFetch } from './services/http';
 
+
+
 type Tab = 'REPORT' | 'TRACK' | 'ADMIN';
 type AuthScreen = 'login' | 'register' | 'mfa' | 'verify-email' | 'app';
 type Status = 'Pending' | 'In Progress' | 'Resolved';
@@ -43,6 +45,7 @@ interface User {
   email: string;
   role: string;
 }
+const [verifyStatus, setVerifyStatus] = useState<string>('');
 
 export const App: React.FC = () => {
   const [authScreen, setAuthScreen] = useState<AuthScreen>('login');
@@ -81,6 +84,30 @@ export const App: React.FC = () => {
   const [newCrew, setNewCrew] = useState('');
   const [completionPhoto, setCompletionPhoto] = useState<string>('');
 
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  if (token) {
+    setVerifyStatus('Verifying your account...');
+
+    fetch('https://zsb-api-people-4-people.onrender.com/api/v1/auth/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.ok) {
+          setVerifyStatus('Email verified! You can now log in.');
+          window.history.replaceState({}, document.title, '/');
+        } else {
+          setVerifyStatus(data.message || 'Verification failed or link expired.');
+        }
+      })
+      .catch(() => setVerifyStatus('Network error while verifying email.'));
+  }
+}, []);
   useEffect(() => {
     const verificationToken = new URLSearchParams(window.location.search).get('token');
     if (window.location.pathname === '/verify-email' && verificationToken) {
@@ -422,6 +449,11 @@ export const App: React.FC = () => {
     <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '900px', margin: '0 auto', padding: '16px' }}>
       <header style={{ backgroundColor: '#005A36', color: '#FFF', padding: '16px', borderRadius: '8px', textAlign: 'center', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
+          {verifyStatus && (
+  <div style={{ padding: '12px', marginTop: '12px', background: '#CCE5FF', color: '#004085', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold' }}>
+    {verifyStatus}
+  </div>
+)}
           <h1 style={{ margin: 0 }}>PEOPLE FOR PEOPLE</h1>
           <p style={{ margin: '4px 0 0 0' }}>Community Service Delivery Platform</p>
         </div>

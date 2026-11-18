@@ -1,5 +1,5 @@
 import express, { NextFunction, Request, Response } from 'express';
-import nodemailer from 'nodemailer';
+import { hashVerificationToken, sendEmail, sendVerificationEmail } from './services/email.service';
 import crypto from 'crypto';
 import { pool } from './config/database';
 import { promisify } from 'util';
@@ -17,20 +17,6 @@ const passwordHashAsync = promisify(crypto.scrypt);
 interface AuthenticatedRequest extends Request {
   authUser?: { id: string; email: string; name: string; role: string };
 }
-
-const emailTransporter = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD
-  ? nodemailer.createTransport(process.env.EMAIL_HOST
-      ? {
-          host: process.env.EMAIL_HOST,
-          port: Number(process.env.EMAIL_PORT || 587),
-          secure: process.env.EMAIL_SECURE === 'true',
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASSWORD },
-        }
-      : {
-          service: process.env.EMAIL_SERVICE || 'gmail',
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASSWORD },
-        })
-  : null;
 
 app.disable('x-powered-by');
 app.use(helmet());
@@ -105,20 +91,6 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   const expected = Buffer.from(hex, 'hex');
   const actual = await passwordHashAsync(password, salt, expected.length) as Buffer;
   return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
-}
-
-async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
-  if (!emailTransporter) {
-    if (process.env.NODE_ENV !== 'production') console.info(`[DEV EMAIL] ${to}: ${subject}`);
-    return false;
-  }
-  try {
-    await emailTransporter.sendMail({ from: process.env.EMAIL_FROM || process.env.EMAIL_USER, to, subject, html });
-    return true;
-  } catch (error) {
-    console.error('[EMAIL ERROR]', error);
-    return false;
-  }
 }
 
 async function sendSmsOtp(phone: string, code: string): Promise<boolean> {
@@ -294,9 +266,9 @@ app.post('/auth/register', authLimiter, asyncRoute(async (req, res) => {
     return res.status(400).json({ error: 'Valid email, phone, name, and password (8 characters) are required' });
   }
   if (password !== confirmPassword) return res.status(400).json({ error: 'Passwords do not match' });
-  const code = crypto.randomInt(100000, 1000000).toString();
+  const verificationToken = crypto.randomBytes(32).toString('base64url');
   const userId = crypto.randomUUID();
-  const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+  const codeHash = hashVerificationToken(verificationToken);
   try {
     await pool.query(
       `INSERT INTO users(id,email,phone,name,password_hash,verification_code_hash,verification_expires_at)
@@ -307,31 +279,34 @@ app.post('/auth/register', authLimiter, asyncRoute(async (req, res) => {
     if (error.code === '23505') return res.status(409).json({ error: 'Email already registered' });
     throw error;
   }
-  const sent = await sendEmail(email, 'Verify Your Email - People4People',
-    `<p>Hello ${escapeHtml(name.trim())}, your verification code is <strong>${code}</strong>. It expires in one hour.</p>`);
-  if (!sent && process.env.NODE_ENV === 'production') {
+  const emailResult = await sendVerificationEmail(email, name.trim(), verificationToken);
+  if (!emailResult.sent) {
     await pool.query('DELETE FROM users WHERE id=$1', [userId]);
-    return res.status(503).json({ error: 'Email verification delivery is not configured' });
+    return res.status(emailResult.reason === 'missing_key' ? 503 : 502).json({
+      error: emailResult.reason === 'missing_key'
+        ? 'Email verification delivery is not configured'
+        : 'Email provider rejected the verification email',
+      detail: emailResult.message,
+      ...(emailResult.status ? { providerStatus: emailResult.status } : {}),
+    });
   }
-  if (!sent) console.info(`[DEV EMAIL VERIFICATION] ${email}: ${code}`);
   return res.status(201).json({
-    status: 'success', message: 'Registration created; check your email for verification.', userId,
-    ...(process.env.NODE_ENV !== 'production' ? { developmentVerificationCode: code } : {}),
+    status: 'success', message: 'Registration created; check your email for a verification link.', userId,
   });
 }));
 
 app.post('/auth/verify-email', authLimiter, asyncRoute(async (req, res) => {
-  const { userId, verificationCode } = req.body || {};
-  if (!validString(userId, 1, 100) || !/^\d{6}$/.test(String(verificationCode || ''))) {
-    return res.status(400).json({ error: 'Valid user ID and six-digit verification code are required' });
+  const token = typeof req.body?.token === 'string' ? req.body.token : '';
+  if (!validString(token, 32, 200)) {
+    return res.status(400).json({ error: 'A valid verification token is required' });
   }
-  const codeHash = crypto.createHash('sha256').update(verificationCode).digest('hex');
+  const tokenHash = hashVerificationToken(token);
   const result = await pool.query(
     `UPDATE users SET verified=TRUE, verification_code_hash=NULL, verification_expires_at=NULL
-     WHERE id=$1 AND verification_code_hash=$2 AND verification_expires_at > NOW() RETURNING id`,
-    [userId, codeHash],
+     WHERE verification_code_hash=$1 AND verification_expires_at > NOW() RETURNING id`,
+    [tokenHash],
   );
-  if (!result.rowCount) return res.status(400).json({ error: 'Invalid, expired, or already used verification code' });
+  if (!result.rowCount) return res.status(400).json({ error: 'Invalid, expired, or already-used verification link' });
   return res.json({ status: 'success', message: 'Email verified successfully' });
 }));
 
@@ -431,11 +406,14 @@ app.post('/admin/add-admin', authenticate, requireRole('superadmin'), asyncRoute
     if (error.code === '23505') return res.status(409).json({ error: 'Admin email already exists' });
     throw error;
   }
-  const sent = await sendEmail(email, 'Admin Account Created - People4People',
-    `<p>Welcome ${escapeHtml(adminName.trim())}. Temporary password: <strong>${temporaryPassword}</strong>. Change it after login.</p>`);
-  if (!sent) {
+  const sent = await sendEmail(
+    email,
+    'Admin Account Created - People4People',
+    `<p>Welcome ${escapeHtml(adminName.trim())}. Temporary password: <strong>${temporaryPassword}</strong>. Change it after login.</p>`,
+  );
+  if (!sent.sent) {
     await pool.query('DELETE FROM users WHERE id=$1', [id]);
-    return res.status(503).json({ error: 'Admin account creation was rolled back because email delivery is unavailable' });
+    return res.status(sent.reason === 'missing_key' ? 503 : 502).json({ error: 'Admin account creation was rolled back because email delivery failed', detail: sent.message });
   }
   return res.status(201).json({ status: 'success', message: 'Admin account created and credentials sent', admin: { id, email, name: adminName.trim() } });
 }));
@@ -475,8 +453,14 @@ app.post('/reports', publicWriteLimiter, asyncRoute(async (req, res) => {
       if (error.code !== '23505' || tries === 2) throw error;
     }
   }
-  if (email) await sendEmail(email, `Your Report #${report.reportNumber} - People4People`,
-    `<p>Your report ${report.reportNumber} was received. Category: ${escapeHtml(report.category)}. Status: Pending.</p>`);
+  if (email) {
+    const delivery = await sendEmail(
+      email,
+      `Your Report #${report.reportNumber} - People4People`,
+      `<p>Your report ${report.reportNumber} was received. Category: ${escapeHtml(report.category)}. Status: Pending.</p>`,
+    );
+    if (!delivery.sent) console.error('[REPORT EMAIL ERROR]', delivery.reason, delivery.message);
+  }
   return res.status(201).json({ status: 'success', reportNumber: report.reportNumber, message: 'Report submitted successfully', data: report });
 }));
 

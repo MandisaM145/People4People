@@ -6,7 +6,7 @@ import { MFA } from './components/MFA';
 import { apiFetch } from './services/http';
 
 type Tab = 'REPORT' | 'TRACK' | 'ADMIN';
-type AuthScreen = 'login' | 'register' | 'mfa' | 'app';
+type AuthScreen = 'login' | 'register' | 'mfa' | 'verify-email' | 'app';
 type Status = 'Pending' | 'In Progress' | 'Resolved';
 
 interface Report {
@@ -50,6 +50,7 @@ export const App: React.FC = () => {
   const [mfaUserId, setMFAUserId] = useState('');
   const [mfaAdminEmail, setMFAAdminEmail] = useState('');
   const [developmentOtpCode, setDevelopmentOtpCode] = useState('');
+  const [verificationResult, setVerificationResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('REPORT');
 
   // Location State
@@ -81,6 +82,12 @@ export const App: React.FC = () => {
   const [completionPhoto, setCompletionPhoto] = useState<string>('');
 
   useEffect(() => {
+    const verificationToken = new URLSearchParams(window.location.search).get('token');
+    if (window.location.pathname === '/verify-email' && verificationToken) {
+      setAuthScreen('verify-email');
+      return;
+    }
+
     // Check if user is already logged in
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -143,6 +150,27 @@ export const App: React.FC = () => {
   const handleRegistrationSuccess = () => {
     setAuthScreen('login');
   };
+
+  useEffect(() => {
+    if (authScreen !== 'verify-email') return;
+    const token = new URLSearchParams(window.location.search).get('token');
+    if (!token) {
+      setVerificationResult({ ok: false, message: 'Verification token is missing.' });
+      return;
+    }
+    let active = true;
+    apiFetch('/auth/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    }).then(async (response) => {
+      const data = await response.json().catch(() => ({}));
+      if (active) setVerificationResult({ ok: response.ok, message: response.ok ? 'Email verified. You can now log in.' : (data.error || 'Verification link is invalid or expired.') });
+    }).catch(() => {
+      if (active) setVerificationResult({ ok: false, message: 'Could not contact the verification service.' });
+    });
+    return () => { active = false; };
+  }, [authScreen]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -363,6 +391,16 @@ export const App: React.FC = () => {
   };
 
   // Auth screens
+  if (authScreen === 'verify-email') {
+    return (
+      <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '520px', margin: '15vh auto', padding: '24px', textAlign: 'center' }}>
+        <h2>Email verification</h2>
+        <p>{verificationResult?.message || 'Verifying your email…'}</p>
+        {verificationResult?.ok && <button onClick={() => { window.history.replaceState({}, document.title, '/'); setVerificationResult(null); setAuthScreen('login'); }}>Continue to login</button>}
+      </div>
+    );
+  }
+
   if (authScreen === 'login') {
     return <Login onLoginSuccess={handleLoginSuccess} onShowRegister={() => setAuthScreen('register')} />;
   }

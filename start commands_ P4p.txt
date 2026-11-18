@@ -1,0 +1,13 @@
+start commands_ P4p
+
+
+docker compose up -d
+
+
+front end ----
+npm run dev
+
+back end ----
+npm install
+npm run start:dev
+

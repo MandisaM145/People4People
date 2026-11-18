@@ -1,0 +1,17 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Node dependencies and outputs
+node_modules/
+**/node_modules/
+backend/dist/
+frontend/dist/
+
+# OSRM generated files (keep profile and source PBF/LFS pointer tracked intentionally)
+osrm-data/*.osrm*
+
+# Logs and local state
+*.log
+.DS_Store
